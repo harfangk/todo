@@ -1,7 +1,7 @@
 defmodule Todo.Server do
   use GenServer
 
-  def start(), do: GenServer.start(Todo.List, nil)
+  def start(), do: GenServer.start(Todo.Server, nil)
 
   def add_entry(pid, entry), do: GenServer.cast(pid, {:add_entry, entry})
 
