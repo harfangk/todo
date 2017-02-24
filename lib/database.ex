@@ -1,7 +1,7 @@
 defmodule Todo.Database do
   use GenServer
 
-  def start(db_folder), do: GenServer.start(__MODULE__, db_folder, name: :database_server) 
+  def start_link(db_folder), do: GenServer.start_link(__MODULE__, db_folder, name: :database_server) 
 
   def store(key, data) do
     key
@@ -21,7 +21,7 @@ defmodule Todo.Database do
 
   defp start_workers(db_folder) do
     for index <- 0..2, into: Map.new() do
-      {:ok, worker_pid} = Todo.DatabaseWorker.start(db_folder)
+      {:ok, worker_pid} = Todo.DatabaseWorker.start_link(db_folder)
       {index, worker_pid}
     end
   end

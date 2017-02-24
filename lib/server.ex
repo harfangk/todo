@@ -1,7 +1,7 @@
 defmodule Todo.Server do
   use GenServer
 
-  def start(name), do: GenServer.start(Todo.Server, name)
+  def start_link(name), do: GenServer.start_link(Todo.Server, name)
 
   def add_entry(pid, entry), do: GenServer.cast(pid, {:add_entry, entry})
 
@@ -32,7 +32,7 @@ defmodule Todo.Server do
     {:noreply, new_state}
   end
 
-  def handle_call({:entries, date}, _, todo_list) do
-    {:reply, Todo.List.entries(todo_list, date), todo_list}
+  def handle_call({:entries, date}, _, {name, todo_list}) do
+    {:reply, Todo.List.entries(todo_list, date), {name, todo_list}}
   end
 end
