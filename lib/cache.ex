@@ -2,7 +2,6 @@ defmodule Todo.Cache do
   use GenServer
 
   def init(_) do
-    Todo.Database.start_link("./persist/")
     {:ok, Map.new()}
   end
 
