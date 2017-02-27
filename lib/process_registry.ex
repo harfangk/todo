@@ -2,7 +2,10 @@ defmodule Todo.ProcessRegistry do
   use GenServer
   import Kernel, except: [send: 2]
 
-  def init(_), do: {:ok, Map.new()}
+  def init(_) do
+    :ets.new(:process_registry, [:set, :named_table, :protected])
+    {:ok, nil}
+  end
 
   def start_link() do
     IO.puts "Starting process registry"
@@ -11,9 +14,14 @@ defmodule Todo.ProcessRegistry do
 
   def register_name(key, pid), do: GenServer.call(:process_registry, {:register_name, key, pid})
 
-  def whereis_name(key), do: GenServer.call(:process_registry, {:whereis_name, key})
-
   def unregister_name(key), do: GenServer.call(:process_registry, {:unregister_name, key})
+
+  def whereis_name(key) do
+    case :ets.lookup(:process_registry, key) do
+      [{^key, pid}] -> pid
+      _ -> :undefined
+    end
+  end
 
   def send(key, message) do
     case whereis_name(key) do
@@ -24,37 +32,24 @@ defmodule Todo.ProcessRegistry do
     end
   end
 
-  def handle_call({:register_name, key, pid}, _, process_registry) do
-    case Map.get(process_registry, key) do
-      nil ->
+  def handle_call({:register_name, key, pid}, _, state) do
+    case whereis_name(key) do
+      :undefined ->
         Process.monitor(pid)
-        {:reply, :yes, Map.put(process_registry, key, pid)}
+        :ets.insert(:process_registry, {key, pid})
+        {:reply, :yes, state}
       _ ->
-        {:reply, :no, process_registry}
+        {:reply, :no, state}
     end
   end
 
-  def handle_call({:whereis_name, key}, _, process_registry) do
-    {:reply, Map.get(process_registry, key, :undefined), process_registry}
+  def handle_call({:unregister_name, key}, _, state) do
+    :ets.delete(:process_registry, key)
+    {:reply, state}
   end
 
-  def handle_call({:unregister_name, key}, _, process_registry) do
-    {:reply, Map.delete(process_registry, key)}
-  end
-
-  def handle_info({:DOWN, _, :process, pid, _}, process_registry) do
-    {:noreply, deregister_pid(process_registry, pid)}
-  end
-
-  defp deregister_pid(process_registry, pid) do
-    Enum.reduce(
-      process_registry,
-      process_registry,
-      fn({registered_alias, registered_process}, registry_acc) when registered_process == pid ->
-          Map.delete(registry_acc, registered_alias)
-
-        (_, registry_acc) -> registry_acc
-      end
-    )
+  def handle_info({:DOWN, _, :process, pid, _}, state) do
+    :ets.match_delete(:process_registry, {:_, pid})
+    {:noreply, state}
   end
 end
