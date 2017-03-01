@@ -6,20 +6,27 @@ defmodule Todo.Web do
 
   post "/add_entry" do
     conn
-    |> Plug.Conn.fetch_params()
+    |> Plug.Conn.fetch_query_params()
     |> add_entry()
     |> respond()
   end
 
   get "/entries" do
     conn
-    |> Plug.Conn.fetch_params()
+    |> Plug.Conn.fetch_query_params()
     |> fetch_entries()
     |> respond()
   end
 
+  match _ do
+    Plug.Conn.send_resp(conn, 404, "Not found")
+  end
+
   def start_server do
-    Plug.Adapters.Cowboy.http(__MODULE__, nil, port: 5454)
+    case Application.get_env(:todo, :port) do
+      nil -> raise("Todo port not specified!")
+      port -> Plug.Adapters.Cowboy.http(__MODULE__, nil, port: port)
+    end
   end
 
   defp add_entry(conn) do
@@ -27,8 +34,8 @@ defmodule Todo.Web do
     |> Todo.Cache.server_process()
     |> Todo.Server.add_entry(
       %{
-        date: parse_date(conn.params["date"],
-        title: conn.params["title"])
+        date: parse_date(conn.params["date"]),
+        title: conn.params["title"]
       }
     )
     
@@ -39,7 +46,7 @@ defmodule Todo.Web do
     Plug.Conn.assign(
       conn,
       :response,
-      entries(conn.params[:list], parse_date(conn.params["date"]))
+      entries(conn.params["list"], parse_date(conn.params["date"]))
     )
   end
 
@@ -64,7 +71,7 @@ defmodule Todo.Web do
     |> Plug.Conn.send_resp(200, conn.assigns[:response])
   end
 
-  match _ do
-    Plug.Conn.send_resp(conn, 404, "Not found")
+  defp parse_date(<< year::binary-size(4), month::binary-size(2), day::binary-size(2) >>) do
+    {String.to_integer(year), String.to_integer(month), String.to_integer(day)}
   end
 end
