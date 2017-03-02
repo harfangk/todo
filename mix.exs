@@ -16,7 +16,7 @@ defmodule Todo.Mixfile do
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :runtime_tools],
       mod: {Todo.Application, []},
     ]
   end
@@ -37,6 +37,7 @@ defmodule Todo.Mixfile do
       {:cowboy, "~> 1.0.0"},
       {:plug, "~> 1.0.0"},
       {:httpoison, "~> 0.11.0", only: :test},
+      {:distillery, "~> 1.0.0"},
     ]
   end
 end
